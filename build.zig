@@ -6,10 +6,10 @@
 const std = @import("std");
 const LazyPath = std.Build.LazyPath;
 
-pub fn wasm2wat(b: *std.Build, wasm: LazyPath, out_basename: []const u8) ?LazyPath {
+pub fn wasm2wat(b: *std.Build, wasm: LazyPath, out_basename: []const u8) LazyPath {
     const this_dep = b.dependencyFromBuildZig(@This(), .{
-        .dependency = .wabt,
         .target = b.graph.host,
+        .optimize = std.builtin.OptimizeMode.ReleaseFast,
     });
     if (this_dep.builder.lazyDependency("wabt", .{})) |wabt_dep| {
         _ = wabt_dep;
@@ -17,7 +17,7 @@ pub fn wasm2wat(b: *std.Build, wasm: LazyPath, out_basename: []const u8) ?LazyPa
         wat_run.addFileArg(wasm);
         return wat_run.addPrefixedOutputFileArg("--output=", out_basename);
     }
-    return null;
+    return b.path("");
 }
 
 pub fn build(b: *std.Build) void {
@@ -45,7 +45,7 @@ pub fn build(b: *std.Build) void {
             .HAVE_SSIZE_T = 1,
             .HAVE_STRCASECMP= 1,
             .HAVE_WIN32_VT100 = 0,
-            .WABT_BIG_ENDIAN = 1,
+            .WABT_BIG_ENDIAN = @as(u1, if(target.result.cpu.arch.endian() == .big) 1 else 0),
             .HAVE_OPENSSL_SHA_H = 0,
             .WITH_EXCEPTIONS = b.option(bool, "WITH_EXCEPTIONS", "compile with exceptions") orelse false,
             .SIZEOF_SIZE_T = 8,
@@ -62,7 +62,6 @@ pub fn build(b: *std.Build) void {
         lib.linkLibCpp();
         lib.addIncludePath(wabt.path("include"));
         lib.addIncludePath(wabt_config_include);
-        // lib.addIncludePath(b.path("include"));
         if (b.lazyDependency("wasmc", .{})) |wasmc| {
             lib.addIncludePath(wasmc.path("include"));
         }
@@ -98,7 +97,6 @@ pub fn build(b: *std.Build) void {
             exe.linkLibrary(lib);
             exe.addIncludePath(wabt.path("include"));
             exe.addIncludePath(wabt_config_include);
-            // exe.addIncludePath(b.path("include"));
 
             b.installArtifact(exe);
         }
