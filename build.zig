@@ -30,76 +30,94 @@ pub fn build(b: *std.Build) void {
         .abi = if (target.result.os.tag == .linux) .musl else null,
     });
 
-    if (b.lazyDependency("wabt", .{
+    const wabt = b.dependency("wabt", .{
         .target = target,
         .optimize = opt,
-    })) |wabt| {
-        const wabt_config_h = b.addConfigHeader(.{
-            .include_path = "wabt/config.h",
-            .style = .{ .cmake = wabt.path("src/config.h.in") },
-        }, .{
-            .WABT_VERSION_STRING = "1.0.36",
-            .HAVE_ALLOCA_H = 0,
-            .HAVE_UNISTD_H = 1,
-            .HAVE_SNPRINTF = 1,
-            .HAVE_SSIZE_T = 1,
-            .HAVE_STRCASECMP = 1,
-            .HAVE_WIN32_VT100 = 0,
-            .WABT_BIG_ENDIAN = @as(u1, if (target.result.cpu.arch.endian() == .big) 1 else 0),
-            .HAVE_OPENSSL_SHA_H = 0,
-            .WITH_EXCEPTIONS = b.option(bool, "WITH_EXCEPTIONS", "compile with exceptions") orelse false,
-            .SIZEOF_SIZE_T = 8,
-            .COMPILER_IS_CLANG = 1,
-            .WABT_DEBUG = b.option(bool, "WABT_DEBUG", "compile with debug support"),
-        });
-        const wabt_config_include = wabt_config_h.getOutput().dirname().dirname();
+    });
+    const wabt_config_h = b.addConfigHeader(.{
+        .include_path = "wabt/config.h",
+        .style = .{ .cmake = wabt.path("src/config.h.in") },
+    }, .{
+        .WABT_VERSION_STRING = "1.0.36",
+        .HAVE_ALLOCA_H = 0,
+        .HAVE_UNISTD_H = 1,
+        .HAVE_SNPRINTF = 1,
+        .HAVE_SSIZE_T = 1,
+        .HAVE_STRCASECMP = 1,
+        .HAVE_WIN32_VT100 = 0,
+        .WABT_BIG_ENDIAN = @as(u1, if (target.result.cpu.arch.endian() == .big) 1 else 0),
+        .HAVE_OPENSSL_SHA_H = 0,
+        .WITH_EXCEPTIONS = b.option(bool, "WITH_EXCEPTIONS", "compile with exceptions") orelse false,
+        .SIZEOF_SIZE_T = 8,
+        .COMPILER_IS_CLANG = 1,
+        .WABT_DEBUG = b.option(bool, "WABT_DEBUG", "compile with debug support"),
+    });
+    const wabt_config_include = wabt_config_h.getOutput().dirname().dirname();
 
-        const lib = b.addStaticLibrary(.{
-            .name = "wabt",
-            .target = static_target,
-            .optimize = opt,
-        });
-        lib.linkLibCpp();
-        lib.addIncludePath(wabt.path("include"));
-        lib.addIncludePath(wabt_config_include);
+    const lib = b.addStaticLibrary(.{
+        .name = "wabt",
+        .target = static_target,
+        .optimize = opt,
+    });
+    lib.linkLibCpp();
+    lib.addIncludePath(wabt.path("include"));
+    lib.addIncludePath(wabt_config_include);
+
+    if (b.systemIntegrationOption("wasmc", .{})) {
+        lib.addIncludePath(b.option(
+            LazyPath,
+            "wasmc",
+            "wasmc include path",
+        ) orelse @panic("wasmc include path not defined"));
+    } else {
         if (b.lazyDependency("wasmc", .{})) |wasmc| {
             lib.addIncludePath(wasmc.path("include"));
         }
+    }
+
+    if (b.systemIntegrationOption("picosha", .{})) {
+        lib.addIncludePath(b.option(
+            LazyPath,
+            "picosha",
+            "picosha include path",
+        ) orelse @panic("picosha include path not defined"));
+    } else {
         if (b.lazyDependency("picosha", .{})) |picosha| {
             lib.addIncludePath(picosha.path(""));
         }
+    }
+
+    lib.addCSourceFiles(.{
+        .files = libwabt_sources,
+        .root = wabt.path("src"),
+    });
+    if (static_target.result.isWasm()) {
+        lib.root_module.addCMacro("_WASI_EMULATED_MMAN", "");
+        lib.linkSystemLibrary("wasi-emulated-mman");
+    } else {
         lib.addCSourceFiles(.{
-            .files = libwabt_sources,
+            .files = wasm2c_sources,
+            .root = wabt.path("wasm2c"),
+        });
+    }
+    b.installArtifact(lib);
+
+    inline for (wabt_tools) |exe_name| {
+        const exe = b.addExecutable(.{
+            .name = exe_name,
+            .target = static_target,
+            .optimize = opt,
+            .linkage = if (target.result.os.tag != .macos) .static else null,
+        });
+        exe.addCSourceFiles(.{
+            .files = &.{"tools/" ++ exe_name ++ ".cc"},
             .root = wabt.path("src"),
         });
-        if (static_target.result.isWasm()) {
-            lib.root_module.addCMacro("_WASI_EMULATED_MMAN", "");
-            lib.linkSystemLibrary("wasi-emulated-mman");
-        } else {
-            lib.addCSourceFiles(.{
-                .files = wasm2c_sources,
-                .root = wabt.path("wasm2c"),
-            });
-        }
-        b.installArtifact(lib);
+        exe.linkLibrary(lib);
+        exe.addIncludePath(wabt.path("include"));
+        exe.addIncludePath(wabt_config_include);
 
-        inline for (wabt_tools) |exe_name| {
-            const exe = b.addExecutable(.{
-                .name = exe_name,
-                .target = static_target,
-                .optimize = opt,
-                .linkage = if (target.result.os.tag != .macos) .static else null,
-            });
-            exe.addCSourceFiles(.{
-                .files = &.{"tools/" ++ exe_name ++ ".cc"},
-                .root = wabt.path("src"),
-            });
-            exe.linkLibrary(lib);
-            exe.addIncludePath(wabt.path("include"));
-            exe.addIncludePath(wabt_config_include);
-
-            b.installArtifact(exe);
-        }
+        b.installArtifact(exe);
     }
 }
 
