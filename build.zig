@@ -36,16 +36,16 @@ pub fn build(b: *std.Build) void {
     })) |wabt| {
         const wabt_config_h = b.addConfigHeader(.{
             .include_path = "wabt/config.h",
-            .style = .{ .cmake = wabt.path("src/config.h.in") }
+            .style = .{ .cmake = wabt.path("src/config.h.in") },
         }, .{
             .WABT_VERSION_STRING = "1.0.36",
             .HAVE_ALLOCA_H = 0,
             .HAVE_UNISTD_H = 1,
             .HAVE_SNPRINTF = 1,
             .HAVE_SSIZE_T = 1,
-            .HAVE_STRCASECMP= 1,
+            .HAVE_STRCASECMP = 1,
             .HAVE_WIN32_VT100 = 0,
-            .WABT_BIG_ENDIAN = @as(u1, if(target.result.cpu.arch.endian() == .big) 1 else 0),
+            .WABT_BIG_ENDIAN = @as(u1, if (target.result.cpu.arch.endian() == .big) 1 else 0),
             .HAVE_OPENSSL_SHA_H = 0,
             .WITH_EXCEPTIONS = b.option(bool, "WITH_EXCEPTIONS", "compile with exceptions") orelse false,
             .SIZEOF_SIZE_T = 8,

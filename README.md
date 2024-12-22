@@ -3,6 +3,12 @@
 this builds the [WebAssembly Binary Toolkit](https://github.com/WebAssembly/wabt.git) to
 use on the [Zig](https://ziglang.org/) build system
 
+# add to your project
+
+```bash
+zig fetch --save git+https://github.com/dasimmet/wabt.git
+```
+
 # build.zig usage
 
 ```zig
