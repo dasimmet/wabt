@@ -21,5 +21,8 @@ jobs:
       - name: Set up Zig
         uses: mlugg/setup-zig@v1
 
+      - name: Check fmt
+        run: zig fmt --check build.zig build.zig.zon
+  
       - name: Run `build`
         run: zig build
