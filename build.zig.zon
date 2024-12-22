@@ -3,8 +3,8 @@
     .version = "0.0.0",
     .dependencies = .{
         .wabt = .{
-            .url = "git+https://github.com/WebAssembly/wabt.git#e3b16dae4166b138bbd04bbe67281f4fa47fd4de",
-            .hash = "1220257b14f7fa9059524e036386a5bef999979d31359da8c59d01a4c82f51c8f59e",
+            .url = "git+https://github.com/WebAssembly/wabt.git#3e826ecde1adfba5f88d10d361131405637e65a3",
+            .hash = "12202268f36bb04100549566f2a336d881e802f859e6cd439b1a466e92b1357efe69",
             .lazy = true,
         },
         .picosha = .{
