@@ -31,5 +31,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: zig-out
-          path: |
-            zig-out
+          path: zig-out
+          retention-days: 14
