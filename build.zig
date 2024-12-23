@@ -64,11 +64,12 @@ pub fn build(b: *std.Build) void {
     lib.addIncludePath(wabt_config_include);
 
     if (b.systemIntegrationOption("wasmc", .{})) {
-        lib.addIncludePath(b.option(
-            LazyPath,
+        const wasmc_path: LazyPath = .{ .cwd_relative = b.option(
+            []const u8,
             "wasmc",
             "wasmc include path",
-        ) orelse @panic("wasmc include path not defined"));
+        ) orelse @panic("wasmc include path not defined") };
+        lib.addIncludePath(wasmc_path);
     } else {
         if (b.lazyDependency("wasmc", .{})) |wasmc| {
             lib.addIncludePath(wasmc.path("include"));
@@ -76,11 +77,12 @@ pub fn build(b: *std.Build) void {
     }
 
     if (b.systemIntegrationOption("picosha", .{})) {
-        lib.addIncludePath(b.option(
-            LazyPath,
+        const picosha_path: LazyPath = .{ .cwd_relative = b.option(
+            []const u8,
             "picosha",
             "picosha include path",
-        ) orelse @panic("picosha include path not defined"));
+        ) orelse @panic("picosha include path not defined") };
+        lib.addIncludePath(picosha_path);
     } else {
         if (b.lazyDependency("picosha", .{})) |picosha| {
             lib.addIncludePath(picosha.path(""));
