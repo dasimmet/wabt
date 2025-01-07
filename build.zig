@@ -19,11 +19,19 @@ pub fn build(b: *std.Build) void {
     if (binaryen_opt) {
         binaryen.build(b, target, opt);
     }
+    const fmt = b.addFmt(.{
+        .check = b.option(bool, "fmtcheck", "check formatting") orelse false,
+        .paths = &.{
+            "build.zig",
+            "build.zig.zon",
+            "wabt.zig",
+            "binaryen.zig",
+        },
+    });
+    b.step("fmt", "format source code").dependOn(&fmt.step);
 }
 
-pub const WasmTool = enum {
-
-};
+pub const WasmTool = enum {};
 
 pub fn wasm2wat(b: *std.Build, wasm: LazyPath, out_basename: []const u8) LazyPath {
     const this_dep = b.dependencyFromBuildZig(@This(), .{
@@ -54,7 +62,7 @@ pub fn wasm_opt(b: *std.Build, wasm: LazyPath, out_basename: []const u8) LazyPat
     if (this_dep.builder.lazyDependency("binaryen", .{})) |wabt_dep| {
         _ = wabt_dep;
         const run = b.addRunArtifact(this_dep.artifact("wasm-opt"));
-        run.addArgs(&.{"-Oz", "-c"});
+        run.addArgs(&.{ "-Oz", "-c" });
         run.addFileArg(wasm);
         return run.addPrefixedOutputFileArg("--output=", out_basename);
     }

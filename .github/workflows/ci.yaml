@@ -22,7 +22,7 @@ jobs:
         uses: mlugg/setup-zig@v1
 
       - name: Check fmt
-        run: zig fmt --check build.zig build.zig.zon
+        run: zig build -Dfmtcheck fmt
   
       - name: Run `build`
         run: zig build

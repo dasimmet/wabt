@@ -1,4 +1,3 @@
-
 const std = @import("std");
 const wabt = @import("wabt.zig");
 const LazyPath = std.Build.LazyPath;
