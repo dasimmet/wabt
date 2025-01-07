@@ -4,6 +4,7 @@
 //
 
 const std = @import("std");
+const binaryen = @import("binaryen.zig");
 const LazyPath = std.Build.LazyPath;
 
 pub fn wasm2wat(b: *std.Build, wasm: LazyPath, out_basename: []const u8) LazyPath {
@@ -23,6 +24,7 @@ pub fn wasm2wat(b: *std.Build, wasm: LazyPath, out_basename: []const u8) LazyPat
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const opt = b.standardOptimizeOption(.{});
+    binaryen.build(b, target, opt);
 
     const static_target = b.resolveTargetQuery(.{
         .cpu_arch = target.result.cpu.arch,
@@ -140,11 +142,11 @@ pub const wabt_tools: []const []const []const u8 = &.{
     &.{"spectest-interp"},
     &.{"wasm2c"},
     &.{"wasm2wat"},
-    &.{"wasm2wat-fuzz", "tools/wasm2wat.cc"},
+    &.{ "wasm2wat-fuzz", "tools/wasm2wat.cc" },
     &.{"wasm-decompile"},
     &.{"wasm-interp"},
-    &.{"wasm-objdump", "binary-reader-objdump.cc"},
-    &.{"wasm-stats", "binary-reader-stats.cc"},
+    &.{ "wasm-objdump", "binary-reader-objdump.cc" },
+    &.{ "wasm-stats", "binary-reader-stats.cc" },
     &.{"wasm-strip"},
     &.{"wasm-validate"},
     &.{"wast2json"},
