@@ -5,6 +5,7 @@
         .wabt = .{
             .url = "git+https://github.com/WebAssembly/wabt.git#3e826ecde1adfba5f88d10d361131405637e65a3",
             .hash = "12202268f36bb04100549566f2a336d881e802f859e6cd439b1a466e92b1357efe69",
+            .lazy = true,
         },
         .picosha = .{
             .url = "git+https://github.com/okdshin/PicoSHA2.git#27fcf6979298949e8a462e16d09a0351c18fcaf2",
@@ -23,7 +24,11 @@
         },
     },
     .paths = .{
+        "README.md",
+        "LICENSE",
         "build.zig",
         "build.zig.zon",
+        "wabt.zig",
+        "binaryen.zig",
     },
 }
