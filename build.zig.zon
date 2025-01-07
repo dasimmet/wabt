@@ -19,6 +19,7 @@
         .binaryen = .{
             .url = "git+https://github.com/WebAssembly/binaryen.git?ref=version_121#353b759b230dff8fb82aeb157aeb6db360d74a49",
             .hash = "1220e352aa8efa7f0256ba687e49d75cdf33d5095f43948d3f49b4ef7d1ff8422e56",
+            .lazy = true,
         },
     },
     .paths = .{
