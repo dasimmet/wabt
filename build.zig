@@ -102,9 +102,12 @@ pub fn build(b: *std.Build) void {
             .root = wabt.path("wasm2c"),
         });
     }
-    b.installArtifact(lib);
+    const lib_install = b.addInstallArtifact(lib, .{});
+    b.step("lib", "install lib").dependOn(&lib_install.step);
 
-    inline for (wabt_tools) |exe_name| {
+    inline for (wabt_tools) |exe_tpl| {
+        const exe_name = exe_tpl[0];
+        const exe_extra_sources = exe_tpl[1..];
         const exe = b.addExecutable(.{
             .name = exe_name,
             .target = static_target,
@@ -112,30 +115,41 @@ pub fn build(b: *std.Build) void {
             .linkage = if (target.result.os.tag != .macos) .static else null,
         });
         exe.addCSourceFiles(.{
-            .files = &.{"tools/" ++ exe_name ++ ".cc"},
+            .files = &.{
+                "tools/" ++ exe_name ++ ".cc",
+            },
             .root = wabt.path("src"),
         });
+        if (exe_extra_sources.len > 0) {
+            exe.addCSourceFiles(.{
+                .files = exe_extra_sources,
+                .root = wabt.path("src"),
+            });
+        }
         exe.linkLibrary(lib);
         exe.addIncludePath(wabt.path("include"));
         exe.addIncludePath(wabt_config_include);
+        b.addNamedLazyPath("include", wabt.path("include"));
+        // b.addInstallHeaderFile(wabt.path("include"), )
 
         b.installArtifact(exe);
     }
 }
 
-pub const wabt_tools = &.{
-    "wasm2c",
-    "wasm2wat",
-    // "wasm2wat-fuzz",
-    "wasm-decompile",
-    "wasm-interp",
-    // "wasm-objdump",
-    // "wasm-stats",
-    "wasm-strip",
-    "wasm-validate",
-    "wast2json",
-    "wat2wasm",
-    "wat-desugar",
+pub const wabt_tools: []const []const []const u8 = &.{
+    &.{"spectest-interp"},
+    &.{"wasm2c"},
+    &.{"wasm2wat"},
+    &.{"wasm2wat-fuzz", "tools/wasm2wat.cc"},
+    &.{"wasm-decompile"},
+    &.{"wasm-interp"},
+    &.{"wasm-objdump", "binary-reader-objdump.cc"},
+    &.{"wasm-stats", "binary-reader-stats.cc"},
+    &.{"wasm-strip"},
+    &.{"wasm-validate"},
+    &.{"wast2json"},
+    &.{"wat2wasm"},
+    &.{"wat-desugar"},
 };
 
 pub const wasm2c_sources = &.{
