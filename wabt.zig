@@ -1,44 +1,30 @@
-// Zig wabt
-//
-// by Tobias Simetsreiter <dasimmet@gmail.com>
-//
 
 const std = @import("std");
-const binaryen = @import("binaryen.zig");
+const wabt = @import("wabt.zig");
 const LazyPath = std.Build.LazyPath;
+const Dependency = std.Build.Dependency;
 
-pub fn wasm2wat(b: *std.Build, wasm: LazyPath, out_basename: []const u8) LazyPath {
-    const this_dep = b.dependencyFromBuildZig(@This(), .{
-        .target = b.graph.host,
-        .optimize = std.builtin.OptimizeMode.ReleaseFast,
-    });
-    if (this_dep.builder.lazyDependency("wabt", .{})) |wabt_dep| {
-        _ = wabt_dep;
-        const wat_run = b.addRunArtifact(this_dep.artifact("wasm2wat"));
-        wat_run.addFileArg(wasm);
-        return wat_run.addPrefixedOutputFileArg("--output=", out_basename);
+pub fn build(b: *std.Build, target: std.Build.ResolvedTarget, opt: std.builtin.OptimizeMode) void {
+    if (b.lazyDependency("wabt", .{})) |src_dep| {
+        buildLazy(b, src_dep, target, opt);
     }
-    return b.path("");
 }
 
-pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-    const opt = b.standardOptimizeOption(.{});
-    binaryen.build(b, target, opt);
-
+pub fn buildLazy(
+    b: *std.Build,
+    src_dep: *Dependency,
+    target: std.Build.ResolvedTarget,
+    opt: std.builtin.OptimizeMode,
+) void {
     const static_target = b.resolveTargetQuery(.{
         .cpu_arch = target.result.cpu.arch,
         .os_tag = target.result.os.tag,
         .abi = if (target.result.os.tag == .linux) .musl else null,
     });
 
-    const wabt = b.dependency("wabt", .{
-        .target = target,
-        .optimize = opt,
-    });
     const wabt_config_h = b.addConfigHeader(.{
         .include_path = "wabt/config.h",
-        .style = .{ .cmake = wabt.path("src/config.h.in") },
+        .style = .{ .cmake = src_dep.path("src/config.h.in") },
     }, .{
         .WABT_VERSION_STRING = "1.0.36",
         .HAVE_ALLOCA_H = 0,
@@ -62,7 +48,7 @@ pub fn build(b: *std.Build) void {
         .optimize = opt,
     });
     lib.linkLibCpp();
-    lib.addIncludePath(wabt.path("include"));
+    lib.addIncludePath(src_dep.path("include"));
     lib.addIncludePath(wabt_config_include);
 
     if (b.systemIntegrationOption("wasmc", .{})) {
@@ -93,7 +79,7 @@ pub fn build(b: *std.Build) void {
 
     lib.addCSourceFiles(.{
         .files = libwabt_sources,
-        .root = wabt.path("src"),
+        .root = src_dep.path("src"),
     });
     if (static_target.result.isWasm()) {
         lib.root_module.addCMacro("_WASI_EMULATED_MMAN", "");
@@ -101,7 +87,7 @@ pub fn build(b: *std.Build) void {
     } else {
         lib.addCSourceFiles(.{
             .files = wasm2c_sources,
-            .root = wabt.path("wasm2c"),
+            .root = src_dep.path("wasm2c"),
         });
     }
     const lib_install = b.addInstallArtifact(lib, .{});
@@ -120,21 +106,22 @@ pub fn build(b: *std.Build) void {
             .files = &.{
                 "tools/" ++ exe_name ++ ".cc",
             },
-            .root = wabt.path("src"),
+            .root = src_dep.path("src"),
         });
         if (exe_extra_sources.len > 0) {
             exe.addCSourceFiles(.{
                 .files = exe_extra_sources,
-                .root = wabt.path("src"),
+                .root = src_dep.path("src"),
             });
         }
         exe.linkLibrary(lib);
-        exe.addIncludePath(wabt.path("include"));
+        exe.addIncludePath(src_dep.path("include"));
         exe.addIncludePath(wabt_config_include);
-        b.addNamedLazyPath("include", wabt.path("include"));
-        // b.addInstallHeaderFile(wabt.path("include"), )
+        b.addNamedLazyPath("include", src_dep.path("include"));
 
-        b.installArtifact(exe);
+        const exe_install = b.addInstallArtifact(exe, .{});
+        b.default_step.dependOn(&exe_install.step);
+        b.step("wabt-" ++ exe_name, "wabt tool " ++ exe_name).dependOn(&exe_install.step);
     }
 }
 

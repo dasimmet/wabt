@@ -29,7 +29,7 @@ pub fn buildLazy(
         .style = .{ .cmake = src_dep.path("src/passes/WasmIntrinsics.cpp.in") },
         .include_path = intrinsics_basename,
     }, .{
-        .WASM_INTRINSICS_EMBED = "0x00",
+        .WASM_INTRINSICS_EMBED = "0x00", // TODO: read the intrinsics wasm to populate this header
     });
     const intrinsics = intrinsics_src.getOutput().dirname();
 
@@ -113,7 +113,9 @@ pub fn buildLazy(
             .root = tools_fuzzing_path,
         });
         exe.linkLibrary(llvm_lib);
-        b.installArtifact(exe);
+        const exe_install = b.addInstallArtifact(exe, .{});
+        b.default_step.dependOn(&exe_install.step);
+        b.step("binaryen-" ++ t, "binaryen-tool " ++ t).dependOn(&exe_install.step);
     }
 }
 
