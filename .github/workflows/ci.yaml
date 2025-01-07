@@ -20,6 +20,8 @@ jobs:
 
       - name: Set up Zig
         uses: mlugg/setup-zig@v1
+        with:
+          version: master
 
       - name: Check fmt
         run: zig build -Dfmtcheck fmt

@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const LazyPath = std.Build.LazyPath;
 const Dependency = std.Build.Dependency;
 
@@ -119,8 +120,16 @@ pub fn buildLazy(
     }
 }
 
+inline fn zig_13_or_older() bool {
+    const zig_version = @import("builtin").zig_version;
+    return zig_version.major == 0 and zig_version.minor <= 13;
+}
+
 fn ptrHasField(ptr: anytype, comptime name: []const u8) bool {
-    const ptr_type = @typeInfo(@TypeOf(ptr)).pointer.child;
+    const ptr_type = if(zig_13_or_older())
+        @typeInfo(@TypeOf(ptr)).Pointer.child
+    else 
+        @typeInfo(@TypeOf(ptr)).pointer.child;
     return @hasField(ptr_type, name);
 }
 

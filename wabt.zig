@@ -116,12 +116,20 @@ pub fn buildLazy(
         exe.linkLibrary(lib);
         exe.addIncludePath(src_dep.path("include"));
         exe.addIncludePath(wabt_config_include);
-        b.addNamedLazyPath("include", src_dep.path("include"));
+
+        if (!zig_13_or_older()) {
+            b.addNamedLazyPath("include", src_dep.path("include"));
+        }
 
         const exe_install = b.addInstallArtifact(exe, .{});
         b.default_step.dependOn(&exe_install.step);
         b.step("wabt-" ++ exe_name, "wabt tool " ++ exe_name).dependOn(&exe_install.step);
     }
+}
+
+inline fn zig_13_or_older() bool {
+    const zig_version = @import("builtin").zig_version;
+    return zig_version.major == 0 and zig_version.minor <= 13;
 }
 
 pub const wabt_tools: []const []const []const u8 = &.{
