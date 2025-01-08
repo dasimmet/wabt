@@ -126,9 +126,9 @@ inline fn zig_13_or_older() bool {
 }
 
 fn ptrHasField(ptr: anytype, comptime name: []const u8) bool {
-    const ptr_type = if(zig_13_or_older())
+    const ptr_type = if (zig_13_or_older())
         @typeInfo(@TypeOf(ptr)).Pointer.child
-    else 
+    else
         @typeInfo(@TypeOf(ptr)).pointer.child;
     return @hasField(ptr_type, name);
 }

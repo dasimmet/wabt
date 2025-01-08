@@ -33,7 +33,12 @@ pub fn build(b: *std.Build) void {
 
 pub const WasmTool = enum {};
 
-pub fn wasm2wat(b: *std.Build, wasm: LazyPath, out_basename: []const u8) LazyPath {
+pub fn wasm2wat(
+    b: *std.Build,
+    wasm: LazyPath,
+    out_basename: []const u8,
+    extra_args: []const []const u8,
+) LazyPath {
     const this_dep = b.dependencyFromBuildZig(@This(), .{
         .target = b.graph.host,
         .optimize = std.builtin.OptimizeMode.ReleaseFast,
@@ -45,13 +50,26 @@ pub fn wasm2wat(b: *std.Build, wasm: LazyPath, out_basename: []const u8) LazyPat
         _ = wabt_dep;
         const run = b.addRunArtifact(this_dep.artifact("wasm2wat"));
         run.addFileArg(wasm);
-        return run.addPrefixedOutputFileArg("--output=", out_basename);
+        const output = run.addPrefixedOutputFileArg("--output=", out_basename);
+        run.addArgs(extra_args);
+        return output;
     }
 
     return b.path("");
 }
 
-pub fn wasm_opt(b: *std.Build, wasm: LazyPath, out_basename: []const u8) LazyPath {
+pub fn wasm_opt(
+    b: *std.Build,
+    wasm: LazyPath,
+    out_basename: []const u8,
+    extra_args: ?[]const []const u8,
+) LazyPath {
+    const default_args: []const []const u8 = &.{
+        "-Oz",
+        "-c",
+    };
+    const extra_args_opt = if (extra_args) |ea| ea else default_args;
+
     const this_dep = b.dependencyFromBuildZig(@This(), .{
         .target = b.graph.host,
         .optimize = std.builtin.OptimizeMode.ReleaseFast,
@@ -62,9 +80,10 @@ pub fn wasm_opt(b: *std.Build, wasm: LazyPath, out_basename: []const u8) LazyPat
     if (this_dep.builder.lazyDependency("binaryen", .{})) |wabt_dep| {
         _ = wabt_dep;
         const run = b.addRunArtifact(this_dep.artifact("wasm-opt"));
-        run.addArgs(&.{ "-Oz", "-c" });
         run.addFileArg(wasm);
-        return run.addPrefixedOutputFileArg("--output=", out_basename);
+        const output = run.addPrefixedOutputFileArg("--output=", out_basename);
+        run.addArgs(extra_args_opt);
+        return output;
     }
 
     return b.path("");
