@@ -55,7 +55,7 @@ pub fn buildLazy(
             []const u8,
             "wasmc",
             "wasmc include path",
-        ) orelse @panic("wasmc include path not defined") };
+        ) orelse @panic("\"wasmc\" include path option not given") };
         lib.addIncludePath(wasmc_path);
     } else {
         if (b.lazyDependency("wasmc", .{})) |wasmc| {
@@ -124,6 +124,32 @@ pub fn buildLazy(
         const exe_install = b.addInstallArtifact(exe, .{});
         b.default_step.dependOn(&exe_install.step);
         b.step("wabt-" ++ exe_name, "wabt tool " ++ exe_name).dependOn(&exe_install.step);
+
+        if (std.mem.eql(u8, exe_name, "wasm2wat")) {
+            if (b.option(
+                LazyPath,
+                "wasm2wat_path",
+                "path to a wasm file to convert to .wat",
+            )) |wasm_path| {
+                const run = b.addRunArtifact(exe);
+                run.addFileArg(wasm_path);
+                const out_basename = b.option(
+                        []const u8,
+                        "wasm2wat_out_basename",
+                        "basename of generated .wat",
+                    ) orelse "out.wat";
+                const output = run.addPrefixedOutputFileArg(
+                    "--output=",
+                    out_basename,
+                );
+                run.addArgs(b.option(
+                    []const []const u8,
+                    "wasm2wat_extra_args",
+                    "extra arguments to wasm2wat",
+                ) orelse &.{});
+                b.addNamedLazyPath(out_basename, output);
+            }
+        }
     }
 }
 
