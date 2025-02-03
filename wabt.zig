@@ -134,10 +134,10 @@ pub fn buildLazy(
                 const run = b.addRunArtifact(exe);
                 run.addFileArg(wasm_path);
                 const out_basename = b.option(
-                        []const u8,
-                        "wasm2wat_out_basename",
-                        "basename of generated .wat",
-                    ) orelse "out.wat";
+                    []const u8,
+                    "wasm2wat_out_basename",
+                    "basename of generated .wat",
+                ) orelse "out.wat";
                 const output = run.addPrefixedOutputFileArg(
                     "--output=",
                     out_basename,

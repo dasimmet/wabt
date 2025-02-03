@@ -117,6 +117,34 @@ pub fn buildLazy(
         const exe_install = b.addInstallArtifact(exe, .{});
         b.default_step.dependOn(&exe_install.step);
         b.step("binaryen-" ++ t, "binaryen-tool " ++ t).dependOn(&exe_install.step);
+
+        if (std.mem.eql(u8, "wasm-opt", t)) {
+            if (b.option(
+                LazyPath,
+                "wasmopt_path",
+                "path to a wasm file to convert to .wasm",
+            )) |wasm_path| {
+                const run = b.addRunArtifact(exe);
+                run.addFileArg(wasm_path);
+                const out_basename = b.option(
+                    []const u8,
+                    "wasmopt_out_basename",
+                    "basename of generated .wasm",
+                ) orelse "out.wasm";
+                const output = run.addPrefixedOutputFileArg("--output=", out_basename);
+                const default_args: []const []const u8 = &.{
+                    "-Oz",
+                    "-c",
+                };
+                const extra_args = b.option(
+                    []const []const u8,
+                    "wasmopt_extra_args",
+                    "basename of generated .wasm",
+                ) orelse default_args;
+                run.addArgs(extra_args);
+                b.addNamedLazyPath(out_basename, output);
+            }
+        }
     }
 }
 
