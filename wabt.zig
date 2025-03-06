@@ -80,7 +80,7 @@ pub fn buildLazy(
         .files = libwabt_sources,
         .root = src_dep.path("src"),
     });
-    if (static_target.result.isWasm()) {
+    if (static_target.result.cpu.arch.isWasm()) {
         lib.root_module.addCMacro("_WASI_EMULATED_MMAN", "");
         lib.linkSystemLibrary("wasi-emulated-mman");
     } else {
