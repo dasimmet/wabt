@@ -1,5 +1,6 @@
 .{
-    .name = "wabt",
+    .name = .wabt,
+    .fingerprint = 0x9e1a5a2e5a578d2a,
     .version = "1.0.36",
     .dependencies = .{
         .wabt = .{
