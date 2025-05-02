@@ -2,25 +2,26 @@
     .name = .wabt,
     .fingerprint = 0x9e1a5a2e5a578d2a,
     .version = "1.0.36",
+    .minimum_zig_version = "0.14.0",
     .dependencies = .{
         .wabt = .{
             .url = "git+https://github.com/WebAssembly/wabt.git#3e826ecde1adfba5f88d10d361131405637e65a3",
-            .hash = "12202268f36bb04100549566f2a336d881e802f859e6cd439b1a466e92b1357efe69",
+            .hash = "N-V-__8AAPcufQAiaPNrsEEAVJVm8qM22IHoAvhZ5s1DmxpG",
             .lazy = true,
         },
         .picosha = .{
             .url = "git+https://github.com/okdshin/PicoSHA2.git#27fcf6979298949e8a462e16d09a0351c18fcaf2",
-            .hash = "1220980b14c6ea107d69eafcf42f1ddcfc27f797f69fe6a00317715cb732cd4d2c4c",
+            .hash = "N-V-__8AALB3AACYCxTG6hB9aer89C8d3Pwn95f2n-agAxdx",
             .lazy = true,
         },
         .wasmc = .{
             .url = "git+https://github.com/WebAssembly/wasm-c-api.git#b6dd1fb658a282c64b029867845bc50ae59e1497",
-            .hash = "122070b51dabf5c2473ef29d7e8570020225f37b996b3651227def41c9a513dc851f",
+            .hash = "N-V-__8AACXfBABwtR2r9cJHPvKdfoVwAgIl83uZazZRIn3v",
             .lazy = true,
         },
         .binaryen = .{
             .url = "git+https://github.com/WebAssembly/binaryen.git?ref=version_121#353b759b230dff8fb82aeb157aeb6db360d74a49",
-            .hash = "1220e352aa8efa7f0256ba687e49d75cdf33d5095f43948d3f49b4ef7d1ff8422e56",
+            .hash = "N-V-__8AANPvGQLjUqqO-n8CVrpofknXXN8z1QlfQ5SNP0m0",
             .lazy = true,
         },
     },
