@@ -34,10 +34,12 @@ pub fn buildLazy(
     });
     const intrinsics = intrinsics_src.getOutput().dirname();
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "binaryen",
-        .target = target,
-        .optimize = opt,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = opt,
+        }),
     });
     const src_path = src_dep.path("src");
     const fp16_path = src_dep.path("third_party/FP16/include");
@@ -52,10 +54,12 @@ pub fn buildLazy(
     });
     b.installArtifact(lib);
 
-    const llvm_lib = b.addStaticLibrary(.{
+    const llvm_lib = b.addLibrary(.{
         .name = "LLVMDWARF",
-        .target = target,
-        .optimize = opt,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = opt,
+        }),
     });
     llvm_lib.linkLibCpp();
     llvm_lib.addCSourceFiles(.{
@@ -65,10 +69,12 @@ pub fn buildLazy(
     llvm_lib.addIncludePath(src_dep.path(llvm.include_path));
 
     inline for (dep_libs) |dep_lib| {
-        const d_lib = b.addStaticLibrary(.{
+        const d_lib = b.addLibrary(.{
             .name = "binaryen_" ++ dep_lib.path,
-            .target = target,
-            .optimize = opt,
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = opt,
+            }),
         });
         d_lib.linkLibCpp();
         const d_root = src_dep.path(b.pathJoin(&.{ "src", dep_lib.path }));
@@ -97,8 +103,10 @@ pub fn buildLazy(
     inline for (tools) |t| {
         const exe = b.addExecutable(.{
             .name = t,
-            .target = target,
-            .optimize = opt,
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = opt,
+            }),
         });
         exe.linkLibCpp();
         exe.linkLibrary(lib);

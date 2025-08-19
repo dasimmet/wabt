@@ -41,10 +41,12 @@ pub fn buildLazy(
     });
     const wabt_config_include = wabt_config_h.getOutput().dirname().dirname();
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "wabt",
-        .target = static_target,
-        .optimize = opt,
+        .root_module = b.createModule(.{
+            .target = static_target,
+            .optimize = opt,
+        }),
     });
     lib.linkLibCpp();
     lib.addIncludePath(src_dep.path("include"));
@@ -97,8 +99,10 @@ pub fn buildLazy(
         const exe_extra_sources = exe_tpl[1..];
         const exe = b.addExecutable(.{
             .name = exe_name,
-            .target = static_target,
-            .optimize = opt,
+            .root_module = b.createModule(.{
+                .target = static_target,
+                .optimize = opt,
+            }),
             .linkage = if (target.result.os.tag != .macos) .static else null,
         });
         exe.addCSourceFiles(.{
