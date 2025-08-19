@@ -19,13 +19,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2.0.5
         with:
           version: master
 
       - name: Check fmt
         run: zig build -Dfmtcheck fmt
-  
+
       - name: Run `build`
         run: zig build
 
