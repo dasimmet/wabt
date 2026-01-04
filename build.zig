@@ -31,8 +31,6 @@ pub fn build(b: *std.Build) void {
     b.step("fmt", "format source code").dependOn(&fmt.step);
 }
 
-pub const WasmTool = enum {};
-
 pub fn wasm2wat(
     b: *std.Build,
     wasm: LazyPath,
