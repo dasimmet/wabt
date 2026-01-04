@@ -46,7 +46,7 @@ const optimized_wasm: LazyPath = wabt.wasm_opt(
     b,
     b.path("my.wasm"),                // source path
     "optimized.wasm",                 // out_basename
-    .{"--mvp-features", "-Oz", "-c"}, // extra args
+    &.{"--mvp-features", "-Oz", "-c"}, // extra args array
 );
 
 // wasm2wat
@@ -55,6 +55,6 @@ const my_wat: LazyPath = wabt.wasm2wat(
     b,
     optimized_wasm, // source path
     "my.wat",       // out_basename
-    .{},            // extra args
+    &.{},            // extra args array
 );
 ```
