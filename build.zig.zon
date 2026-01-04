@@ -2,7 +2,7 @@
     .name = .wabt,
     .fingerprint = 0x9e1a5a2e5a578d2a,
     .version = "1.0.36",
-    .minimum_zig_version = "0.14.0",
+    .minimum_zig_version = "0.16.0-dev.1892+53ebfde6b",
     .dependencies = .{
         .wabt = .{
             .url = "git+https://github.com/WebAssembly/wabt.git#3e826ecde1adfba5f88d10d361131405637e65a3",

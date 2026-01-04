@@ -39,18 +39,18 @@ pub fn buildLazy(
         .COMPILER_IS_CLANG = 1,
         .WABT_DEBUG = b.option(bool, "WABT_DEBUG", "compile with debug support"),
     });
-    const wabt_config_include = wabt_config_h.getOutput().dirname().dirname();
+    const wabt_config_include = wabt_config_h.getOutputDir();
 
     const lib = b.addLibrary(.{
         .name = "wabt",
         .root_module = b.createModule(.{
             .target = static_target,
             .optimize = opt,
+            .link_libcpp = true,
         }),
     });
-    lib.linkLibCpp();
-    lib.addIncludePath(src_dep.path("include"));
-    lib.addIncludePath(wabt_config_include);
+    lib.root_module.addIncludePath(src_dep.path("include"));
+    lib.root_module.addIncludePath(wabt_config_include);
 
     if (b.systemIntegrationOption("wasmc", .{})) {
         const wasmc_path: LazyPath = .{ .cwd_relative = b.option(
@@ -58,10 +58,10 @@ pub fn buildLazy(
             "wasmc",
             "wasmc include path",
         ) orelse @panic("\"wasmc\" include path option not given") };
-        lib.addIncludePath(wasmc_path);
+        lib.root_module.addIncludePath(wasmc_path);
     } else {
         if (b.lazyDependency("wasmc", .{})) |wasmc| {
-            lib.addIncludePath(wasmc.path("include"));
+            lib.root_module.addIncludePath(wasmc.path("include"));
         }
     }
 
@@ -71,22 +71,22 @@ pub fn buildLazy(
             "picosha",
             "picosha include path",
         ) orelse @panic("picosha include path not defined") };
-        lib.addIncludePath(picosha_path);
+        lib.root_module.addIncludePath(picosha_path);
     } else {
         if (b.lazyDependency("picosha", .{})) |picosha| {
-            lib.addIncludePath(picosha.path(""));
+            lib.root_module.addIncludePath(picosha.path(""));
         }
     }
 
-    lib.addCSourceFiles(.{
+    lib.root_module.addCSourceFiles(.{
         .files = libwabt_sources,
         .root = src_dep.path("src"),
     });
     if (static_target.result.os.tag == .wasi) {
         lib.root_module.addCMacro("_WASI_EMULATED_MMAN", "");
-        lib.linkSystemLibrary("wasi-emulated-mman");
+        lib.root_module.linkSystemLibrary("wasi-emulated-mman", .{});
     } else {
-        lib.addCSourceFiles(.{
+        lib.root_module.addCSourceFiles(.{
             .files = wasm2c_sources,
             .root = src_dep.path("wasm2c"),
         });
@@ -105,25 +105,23 @@ pub fn buildLazy(
             }),
             .linkage = if (target.result.os.tag != .macos) .static else null,
         });
-        exe.addCSourceFiles(.{
+        exe.root_module.addCSourceFiles(.{
             .files = &.{
                 "tools/" ++ exe_name ++ ".cc",
             },
             .root = src_dep.path("src"),
         });
         if (exe_extra_sources.len > 0) {
-            exe.addCSourceFiles(.{
+            exe.root_module.addCSourceFiles(.{
                 .files = exe_extra_sources,
                 .root = src_dep.path("src"),
             });
         }
-        exe.linkLibrary(lib);
-        exe.addIncludePath(src_dep.path("include"));
-        exe.addIncludePath(wabt_config_include);
+        exe.root_module.linkLibrary(lib);
+        exe.root_module.addIncludePath(src_dep.path("include"));
+        exe.root_module.addIncludePath(wabt_config_include);
 
-        if (!zig_13_or_older()) {
-            b.addNamedLazyPath("include", src_dep.path("include"));
-        }
+        b.addNamedLazyPath("include", src_dep.path("include"));
 
         const exe_install = b.addInstallArtifact(exe, .{});
         b.default_step.dependOn(&exe_install.step);
@@ -155,11 +153,6 @@ pub fn buildLazy(
             }
         }
     }
-}
-
-inline fn zig_13_or_older() bool {
-    const zig_version = @import("builtin").zig_version;
-    return zig_version.major == 0 and zig_version.minor <= 13;
 }
 
 pub const wabt_tools: []const []const []const u8 = &.{

@@ -23,7 +23,7 @@ pub fn buildLazy(
     }, .{
         .PROJECT_VERSION = binaryen_version_h,
     });
-    const config_h_include = config_h.getOutput().dirname();
+    const config_h_include = config_h.getOutputDir();
 
     const intrinsics_basename = "WasmIntrinsics.cpp";
     const intrinsics_src = b.addConfigHeader(.{
@@ -32,23 +32,23 @@ pub fn buildLazy(
     }, .{
         .WASM_INTRINSICS_EMBED = "0x00", // TODO: read the intrinsics wasm to populate this header
     });
-    const intrinsics = intrinsics_src.getOutput().dirname();
+    const intrinsics = intrinsics_src.getOutputDir();
 
     const lib = b.addLibrary(.{
         .name = "binaryen",
         .root_module = b.createModule(.{
             .target = target,
             .optimize = opt,
+            .link_libcpp = true,
         }),
     });
     const src_path = src_dep.path("src");
     const fp16_path = src_dep.path("third_party/FP16/include");
-    lib.linkLibCpp();
-    lib.addIncludePath(config_h_include);
-    lib.addIncludePath(src_path);
-    lib.addIncludePath(fp16_path);
-    lib.addIncludePath(src_dep.path(llvm.include_path));
-    lib.addCSourceFiles(.{
+    lib.root_module.addIncludePath(config_h_include);
+    lib.root_module.addIncludePath(src_path);
+    lib.root_module.addIncludePath(fp16_path);
+    lib.root_module.addIncludePath(src_dep.path(llvm.include_path));
+    lib.root_module.addCSourceFiles(.{
         .files = lib_sources,
         .root = src_path,
     });
@@ -59,14 +59,14 @@ pub fn buildLazy(
         .root_module = b.createModule(.{
             .target = target,
             .optimize = opt,
+            .link_libcpp = true,
         }),
     });
-    llvm_lib.linkLibCpp();
-    llvm_lib.addCSourceFiles(.{
+    llvm_lib.root_module.addCSourceFiles(.{
         .files = llvm.sources,
         .root = src_dep.path(llvm.src_path),
     });
-    llvm_lib.addIncludePath(src_dep.path(llvm.include_path));
+    llvm_lib.root_module.addIncludePath(src_dep.path(llvm.include_path));
 
     inline for (dep_libs) |dep_lib| {
         const d_lib = b.addLibrary(.{
@@ -74,27 +74,27 @@ pub fn buildLazy(
             .root_module = b.createModule(.{
                 .target = target,
                 .optimize = opt,
+                .link_libcpp = true,
             }),
         });
-        d_lib.linkLibCpp();
         const d_root = src_dep.path(b.pathJoin(&.{ "src", dep_lib.path }));
-        d_lib.addCSourceFiles(.{
+        d_lib.root_module.addCSourceFiles(.{
             .files = dep_lib.sources,
             .root = d_root,
         });
         if (ptrHasField(dep_lib, "add_intrinsics")) {
-            d_lib.addCSourceFiles(.{
+            d_lib.root_module.addCSourceFiles(.{
                 .files = &.{intrinsics_basename},
                 .root = intrinsics,
             });
         }
         if (ptrHasField(dep_lib, "link_llvm")) {
-            d_lib.addIncludePath(src_dep.path(llvm.include_path));
+            d_lib.root_module.addIncludePath(src_dep.path(llvm.include_path));
         }
-        d_lib.addIncludePath(src_path);
-        d_lib.addIncludePath(config_h_include);
-        d_lib.addIncludePath(fp16_path);
-        lib.linkLibrary(d_lib);
+        d_lib.root_module.addIncludePath(src_path);
+        d_lib.root_module.addIncludePath(config_h_include);
+        d_lib.root_module.addIncludePath(fp16_path);
+        lib.root_module.linkLibrary(d_lib);
         b.step("binaryen-lib-" ++ dep_lib.path, "binaryen-library").dependOn(&d_lib.step);
     }
 
@@ -106,22 +106,22 @@ pub fn buildLazy(
             .root_module = b.createModule(.{
                 .target = target,
                 .optimize = opt,
+                .link_libcpp = true,
             }),
         });
-        exe.linkLibCpp();
-        exe.linkLibrary(lib);
-        exe.addIncludePath(src_path);
-        exe.addIncludePath(fp16_path);
-        exe.addIncludePath(tools_path);
-        exe.addCSourceFiles(.{
+        exe.root_module.linkLibrary(lib);
+        exe.root_module.addIncludePath(src_path);
+        exe.root_module.addIncludePath(fp16_path);
+        exe.root_module.addIncludePath(tools_path);
+        exe.root_module.addCSourceFiles(.{
             .files = &.{t ++ ".cpp"},
             .root = tools_path,
         });
-        exe.addCSourceFiles(.{
+        exe.root_module.addCSourceFiles(.{
             .files = tools_fuzzing.sources,
             .root = tools_fuzzing_path,
         });
-        exe.linkLibrary(llvm_lib);
+        exe.root_module.linkLibrary(llvm_lib);
         const exe_install = b.addInstallArtifact(exe, .{});
         b.default_step.dependOn(&exe_install.step);
         b.step("binaryen-" ++ t, "binaryen-tool " ++ t).dependOn(&exe_install.step);
