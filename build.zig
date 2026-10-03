@@ -22,10 +22,10 @@ pub fn build(b: *std.Build) void {
     const fmt = b.addFmt(.{
         .check = b.option(bool, "fmtcheck", "check formatting") orelse false,
         .paths = &.{
-            "build.zig",
-            "build.zig.zon",
-            "wabt.zig",
-            "binaryen.zig",
+            b.path("build.zig"),
+            b.path("build.zig.zon"),
+            b.path("wabt.zig"),
+            b.path("binaryen.zig"),
         },
     });
     b.step("fmt", "format source code").dependOn(&fmt.step);
