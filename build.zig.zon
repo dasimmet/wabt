@@ -7,7 +7,6 @@
         .wabt = .{
             .url = "git+https://github.com/WebAssembly/wabt.git#3e826ecde1adfba5f88d10d361131405637e65a3",
             .hash = "N-V-__8AAPcufQAiaPNrsEEAVJVm8qM22IHoAvhZ5s1DmxpG",
-            .lazy = true,
         },
         .picosha = .{
             .url = "git+https://github.com/okdshin/PicoSHA2.git#27fcf6979298949e8a462e16d09a0351c18fcaf2",
@@ -19,18 +18,11 @@
             .hash = "N-V-__8AACXfBABwtR2r9cJHPvKdfoVwAgIl83uZazZRIn3v",
             .lazy = true,
         },
-        .binaryen = .{
-            .url = "git+https://github.com/WebAssembly/binaryen.git?ref=version_121#353b759b230dff8fb82aeb157aeb6db360d74a49",
-            .hash = "N-V-__8AANPvGQLjUqqO-n8CVrpofknXXN8z1QlfQ5SNP0m0",
-            .lazy = true,
-        },
     },
     .paths = .{
         "README.md",
         "LICENSE",
         "build.zig",
         "build.zig.zon",
-        "wabt.zig",
-        "binaryen.zig",
     },
 }
