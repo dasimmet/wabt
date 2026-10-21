@@ -32,13 +32,21 @@ pub fn build(b: *std.Build) void {
         .HAVE_SNPRINTF = 1,
         .HAVE_SSIZE_T = 1,
         .HAVE_STRCASECMP = 1,
-        .HAVE_WIN32_VT100 = 0,
+        .HAVE_WIN32_VT100 = @as(u1, if (target.result.os.tag == .windows) 1 else 0),
         .WABT_BIG_ENDIAN = @as(u1, if (target.result.cpu.arch.endian() == .big) 1 else 0),
-        .HAVE_OPENSSL_SHA_H = 0,
-        .WITH_EXCEPTIONS = b.option(bool, "WITH_EXCEPTIONS", "compile with exceptions") orelse false,
-        .SIZEOF_SIZE_T = 8,
+        .HAVE_OPENSSL_SHA_H = 0, // we use picosha instead
+        .WITH_EXCEPTIONS = b.option(
+            bool,
+            "EXCEPTIONS",
+            "compile with exceptions",
+        ) orelse false,
+        .SIZEOF_SIZE_T = target.result.ptrBitWidth() / 8,
         .COMPILER_IS_CLANG = 1,
-        .WABT_DEBUG = b.option(bool, "WABT_DEBUG", "compile with debug support"),
+        .WABT_DEBUG = b.option(
+            bool,
+            "WABT_DEBUG",
+            "compile with debug support",
+        ) orelse (optimize == .debug or optimize == .safe),
     });
     const wabt_config_include = wabt_config_h.getOutputDir();
 
