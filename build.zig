@@ -4,6 +4,7 @@
 //
 
 const std = @import("std");
+const zon = @import("build.zig.zon");
 const LazyPath = std.Build.LazyPath;
 const Dependency = std.Build.Dependency;
 
@@ -25,7 +26,7 @@ pub fn build(b: *std.Build) void {
         .include_path = "wabt/config.h",
         .style = .{ .cmake = src_dep.path("src/config.h.in") },
     }, .{
-        .WABT_VERSION_STRING = "1.0.36",
+        .WABT_VERSION_STRING = zon.version,
         .HAVE_ALLOCA_H = 0,
         .HAVE_UNISTD_H = 1,
         .HAVE_SNPRINTF = 1,
@@ -78,8 +79,17 @@ pub fn build(b: *std.Build) void {
         }
     }
 
+    const cxx_flags: []const []const u8 = &.{
+        "-std=c++20",
+    };
+
     lib.root_module.addCSourceFiles(.{
-        .files = libwabt_sources,
+        .files = libwabt_cc_sources,
+        .root = src_dep.path("src"),
+        .flags = cxx_flags,
+    });
+    lib.root_module.addCSourceFiles(.{
+        .files = libwabt_c_sources,
         .root = src_dep.path("src"),
     });
     if (target.result.os.tag == .wasi) {
@@ -94,27 +104,28 @@ pub fn build(b: *std.Build) void {
     const lib_install = b.addInstallArtifact(lib, .{});
     b.step("lib", "install lib").dependOn(&lib_install.step);
 
-    inline for (wabt_tools) |exe_tpl| {
-        const exe_name = exe_tpl[0];
-        const exe_extra_sources = exe_tpl[1..];
+    inline for (wabt_tools) |tool| {
         const exe = b.addExecutable(.{
-            .name = exe_name,
+            .name = tool.name,
             .root_module = b.createModule(.{
                 .target = target,
                 .optimize = optimize,
             }),
             .linkage = if (target.result.os.tag != .macos) .static else null,
         });
-        exe.root_module.addCSourceFiles(.{
-            .files = &.{
-                "tools/" ++ exe_name ++ ".cc",
-            },
-            .root = src_dep.path("src"),
-        });
-        if (exe_extra_sources.len > 0) {
+        if (tool.files) |files| {
             exe.root_module.addCSourceFiles(.{
-                .files = exe_extra_sources,
+                .files = files,
                 .root = src_dep.path("src"),
+                .flags = cxx_flags,
+            });
+        } else {
+            exe.root_module.addCSourceFiles(.{
+                .files = &.{
+                    "tools/" ++ tool.name ++ ".cc",
+                },
+                .root = src_dep.path("src"),
+                .flags = cxx_flags,
             });
         }
         exe.root_module.linkLibrary(lib);
@@ -123,24 +134,46 @@ pub fn build(b: *std.Build) void {
 
         const exe_install = b.addInstallArtifact(exe, .{});
         b.default_step.dependOn(&exe_install.step);
-        b.step("wabt-" ++ exe_name, "wabt tool " ++ exe_name).dependOn(&exe_install.step);
+        b.step("wabt-" ++ tool.name, "wabt tool " ++ tool.name).dependOn(&exe_install.step);
     }
 }
 
-pub const wabt_tools: []const []const []const u8 = &.{
-    &.{"spectest-interp"},
-    &.{"wasm2c"},
-    &.{"wasm2wat"},
-    &.{ "wasm2wat-fuzz", "tools/wasm2wat.cc" },
-    &.{"wasm-decompile"},
-    &.{"wasm-interp"},
-    &.{ "wasm-objdump", "binary-reader-objdump.cc" },
-    &.{ "wasm-stats", "binary-reader-stats.cc" },
-    &.{"wasm-strip"},
-    &.{"wasm-validate"},
-    &.{"wast2json"},
-    &.{"wat2wasm"},
-    &.{"wat-desugar"},
+const Tool = struct {
+    name: []const u8,
+    files: ?[]const []const u8 = null,
+};
+
+pub const wabt_tools: []const Tool = &.{
+    .{ .name = "spectest-interp" },
+    .{ .name = "wasm2c" },
+    .{
+        .name = "wasm2wat-fuzz",
+        .files = &.{
+            "tools/wasm2wat-fuzz.cc",
+            "tools/wasm2wat.cc",
+        },
+    },
+    .{ .name = "wasm2wat" },
+    .{ .name = "wasm-interp" },
+    .{
+        .name = "wasm-objdump",
+        .files = &.{
+            "tools/wasm-objdump.cc",
+            "binary-reader-objdump.cc",
+        },
+    },
+    .{
+        .name = "wasm-stats",
+        .files = &.{
+            "tools/wasm-stats.cc",
+            "binary-reader-stats.cc",
+        },
+    },
+    .{ .name = "wasm-strip" },
+    .{ .name = "wasm-validate" },
+    .{ .name = "wast2json" },
+    .{ .name = "wat2wasm" },
+    .{ .name = "wat-desugar" },
 };
 
 pub const wasm2c_sources = &.{
@@ -149,7 +182,11 @@ pub const wasm2c_sources = &.{
     "wasm-rt-mem-impl.c",
 };
 
-pub const libwabt_sources = &.{
+pub const libwabt_c_sources = &.{
+    "opcode-code-table.c",
+};
+
+pub const libwabt_cc_sources = &.{
     "apply-names.cc",
     "binary-reader-ir.cc",
     "binary-reader-logging.cc",
@@ -158,24 +195,33 @@ pub const libwabt_sources = &.{
     "binary-writer.cc",
     "binary.cc",
     "binding-hash.cc",
+    "c-writer.cc",
     "color.cc",
     "common.cc",
     "config.cc",
-    "decompiler.cc",
     "error-formatter.cc",
     "expr-visitor.cc",
     "feature.cc",
     "filenames.cc",
     "generate-names.cc",
+    "interp/binary-reader-interp.cc",
+    "interp/interp-util.cc",
+    "interp/interp.cc",
+    "interp/istream.cc",
     "ir-util.cc",
     "ir.cc",
     "leb128.cc",
     "lexer-source-line-finder.cc",
     "lexer-source.cc",
     "literal.cc",
-    "opcode-code-table.c",
     "opcode.cc",
     "option-parser.cc",
+    "prebuilt/wasm2c_atomicops_source_declarations.cc",
+    "prebuilt/wasm2c_header_bottom.cc",
+    "prebuilt/wasm2c_header_top.cc",
+    "prebuilt/wasm2c_simd_source_declarations.cc",
+    "prebuilt/wasm2c_source_declarations.cc",
+    "prebuilt/wasm2c_source_includes.cc",
     "resolve-names.cc",
     "sha256.cc",
     "shared-validator.cc",
@@ -188,65 +234,4 @@ pub const libwabt_sources = &.{
     "wast-lexer.cc",
     "wast-parser.cc",
     "wat-writer.cc",
-    "c-writer.cc",
-    "prebuilt/wasm2c_header_top.cc",
-    "prebuilt/wasm2c_header_bottom.cc",
-    "prebuilt/wasm2c_source_includes.cc",
-    "prebuilt/wasm2c_source_declarations.cc",
-    "prebuilt/wasm2c_simd_source_declarations.cc",
-    "prebuilt/wasm2c_atomicops_source_declarations.cc",
-    "interp/binary-reader-interp.cc",
-    "interp/interp.cc",
-    "interp/interp-util.cc",
-    "interp/istream.cc",
-    "apply-names.cc",
-    "binary-reader-ir.cc",
-    "binary-reader-logging.cc",
-    "binary-reader.cc",
-    "binary-writer-spec.cc",
-    "binary-writer.cc",
-    "binary.cc",
-    "binding-hash.cc",
-    "color.cc",
-    "common.cc",
-    "config.cc",
-    "decompiler.cc",
-    "error-formatter.cc",
-    "expr-visitor.cc",
-    "feature.cc",
-    "filenames.cc",
-    "generate-names.cc",
-    "ir-util.cc",
-    "ir.cc",
-    "leb128.cc",
-    "lexer-source-line-finder.cc",
-    "lexer-source.cc",
-    "literal.cc",
-    "opcode-code-table.c",
-    "opcode.cc",
-    "option-parser.cc",
-    "resolve-names.cc",
-    "sha256.cc",
-    "shared-validator.cc",
-    "stream.cc",
-    "token.cc",
-    "tracing.cc",
-    "type-checker.cc",
-    "utf8.cc",
-    "validator.cc",
-    "wast-lexer.cc",
-    "wast-parser.cc",
-    "wat-writer.cc",
-    "c-writer.cc",
-    "prebuilt/wasm2c_header_top.cc",
-    "prebuilt/wasm2c_header_bottom.cc",
-    "prebuilt/wasm2c_source_includes.cc",
-    "prebuilt/wasm2c_source_declarations.cc",
-    "prebuilt/wasm2c_simd_source_declarations.cc",
-    "prebuilt/wasm2c_atomicops_source_declarations.cc",
-    "interp/binary-reader-interp.cc",
-    "interp/interp.cc",
-    "interp/interp-util.cc",
-    "interp/istream.cc",
-    "interp/interp-wasm-c-api.cc",
 };

@@ -1,12 +1,12 @@
 .{
     .name = .wabt,
     .fingerprint = 0x9e1a5a2e5a578d2a,
-    .version = "1.0.36",
+    .version = "1.0.42",
     .minimum_zig_version = "0.17.0",
     .dependencies = .{
         .wabt = .{
-            .url = "git+https://github.com/WebAssembly/wabt.git#3e826ecde1adfba5f88d10d361131405637e65a3",
-            .hash = "N-V-__8AAPcufQAiaPNrsEEAVJVm8qM22IHoAvhZ5s1DmxpG",
+            .url = "git+https://github.com/WebAssembly/wabt.git?ref=1.0.42#ff0ef7e0009402740c805a9744c09b05be063e48",
+            .hash = "N-V-__8AAEWgsQAGgmMQOtME3QkxgaRjubEIZfgfdz6eTgT9",
         },
         .picosha = .{
             .url = "git+https://github.com/okdshin/PicoSHA2.git#27fcf6979298949e8a462e16d09a0351c18fcaf2",
